@@ -25,24 +25,38 @@ function branch_tree(repo::GitRepo, branch_name=nothing)
 end
 
 
-
-
-
-
-
-
-
-function PR_diff(dir=pwd())
-    repo = LibGit2.GitRepo(dir)
+function PR_diff(repo=LibGit2.GitRepo(pwd()))
     diff_tree(repo, branch_tree(repo), head_tree(repo))   
 end
 
 
 const diff_tree = LibGit2.diff_tree
 
-deltas(diff::GitDiff) = [diff[i] for i in 1:LibGit2.count(diff)]
+deltas(diff::LibGit2.GitDiff) = [diff[i] for i in 1:LibGit2.count(diff)]
+
+function contents(repo::LibGit2.GitRepo, df::LibGit2.DiffFile)
+	LibGit2.GitBlob(repo, df.id) |> LibGit2.content
+end
 
 
+is_added(d::LibGit2.DiffDelta) = LibGit2.Consts.DELTA_STATUS(d.status) == LibGit2.Consts.DELTA_ADDED
+is_deleted(d::LibGit2.DiffDelta) = LibGit2.Consts.DELTA_STATUS(d.status) == LibGit2.Consts.DELTA_DELETED
+is_modified(d::LibGit2.DiffDelta) = LibGit2.Consts.DELTA_STATUS(d.status) == LibGit2.Consts.DELTA_MODIFIED
+# is_renamed(d::LibGit2.DiffDelta) = LibGit2.Consts.DELTA_STATUS(d.status) == LibGit2.Consts.DELTA_RENAMED
+
+
+
+
+# use like so:
+
+# repo = Glitter.LibGit2.GitRepo(pwd())
+# diff = Glitter.PR_diff(repo)
+# ds = Glitter.deltas(diff)
+# for d in ds
+#     if Glitter.is_modified(d)
+#       println(Glitter.contents(repo, d.new_file))
+#     end
+# end
 
 
 end
