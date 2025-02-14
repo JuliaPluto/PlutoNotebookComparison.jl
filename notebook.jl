@@ -7,14 +7,16 @@ using InteractiveUtils
 # ╔═╡ aa68c324-eabf-11ef-2a75-19adc8937c8a
 using Pluto
 
-# ╔═╡ 8b486212-c2c0-452b-bfcf-8e2454c06a17
-contents = read("./test.html", String)
+# ╔═╡ 420f67e2-ffa9-4323-9d9d-4a0e6c19b01b
 
-# ╔═╡ ef2ea3a5-73de-4d43-9a0e-da768484ec87
-Text(contents)
 
 # ╔═╡ af7c27ca-5f81-49be-86a9-74d52a90346a
 
+
+# ╔═╡ 8447d68b-eb5b-45ed-90d2-379747854b03
+md"""
+# State diff
+"""
 
 # ╔═╡ 40e38f1f-7e7a-42c5-9bdc-ccaebba627d9
 state1_raw = read("./test1.plutostate")
@@ -23,7 +25,7 @@ state1_raw = read("./test1.plutostate")
 state1 = Pluto.unpack(state1_raw)
 
 # ╔═╡ e46aec14-8e7c-453a-8aa2-cb1a50d99501
-state2_raw = read("./test3.plutostate")
+state2_raw = read("./test2.plutostate")
 
 # ╔═╡ 04d317ff-50dc-4dec-b543-8deb96964f9f
 state2 = Pluto.unpack(state2_raw)
@@ -35,9 +37,6 @@ diff = Pluto.Firebasey.diff(state1, state2)
 if any(p -> isempty(p.path), diff)
 	error("Completely different notebook")
 end
-
-# ╔═╡ 760b8fef-55e6-40a8-9dc7-7e578f0a5c5b
-filter(is_important, diff)
 
 # ╔═╡ dde77a7b-08f7-47bd-bf8c-1ed6d83d4d3e
 const safe_to_ignore_result_keys = (
@@ -73,24 +72,36 @@ function is_folded(state, cell_id, fallback=true)
 	getsub(state, fallback, "cell_inputs", cell_id, "code_folded")
 end
 
+# ╔═╡ 343e3baa-921b-45af-8e19-077f6b098085
+function is_errored(state, cell_id, fallback=false)
+	getsub(state, fallback, "cell_results", cell_id, "errored")
+end
+
+# ╔═╡ a245acaf-b112-4af0-ba4b-78fda3b2da8e
+flatmap(args...) = vcat(map(args...)...)
+
 # ╔═╡ 4087533e-c54b-4cb9-b474-e82ad98b0229
 begin
 	abstract type Change end
 
 
-	struct InputChanged <: Change
-		code_folded::Bool
-	end
 
 	struct ErrorChanged <: Change
+		cell_id::String
 		new_errored::Bool
 	end
 
+	struct CodeChanged <: Change
+		cell_id::String
+		code_folded::Bool
+	end
 	struct FoldedChanged <: Change
-		new_folded
+		cell_id::String
+		code_folded::Bool
 	end
 
 	struct Outputchanged <: Change
+		cell_id::String
 	end
 
 end
@@ -98,36 +109,135 @@ end
 # ╔═╡ a341a46e-3dc5-4e21-9ebe-f9d45c5eb51e
 function changes(patch::Pluto.Firebasey.JSONPatch, newstate)
 	path = patch.path
+	cell_id = get(path, 2, "notfound")
 	if path[1] == "cell_inputs"
+		@assert length(path) >= 2
 		
-		InputChanged(
-				is_folded(newstate, get(path, 2, "asdf"))
-		)
+		just_a_fold = length(path) == 3 && path[3] == "code_folded"
+		T = just_a_fold ? FoldedChanged : CodeChanged
+		
+		[T(cell_id, is_folded(newstate, cell_id))]
 	elseif path[1] == "cell_results"
+		@assert length(path) >= 2
+
 		if length(path) >= 3
 			subpath = join(path[3:end],"/")
 			if any(s -> startswith(subpath, s), safe_to_ignore_result_keys)
-				false
+				[]
 			else
-				true
+				if subpath == "errored"
+					[ErrorChanged(cell_id, is_errored(newstate, cell_id))]
+				else
+					[Outputchanged(cell_id)]
+				end
 			end
 		else
-			true
+			# all possible changes
+			[
+				Outputchanged(cell_id), 
+				ErrorChanged(cell_id, is_errored(newstate, cell_id)),
+			]
 		end
 	else
-		false
+		[]
 	end
 end
 
 # ╔═╡ e8007d30-2b0a-46c4-80a7-a1d4367fb3a3
-map(d -> changes(d, state2), diff)
+cs = flatmap(d -> changes(d, state2), diff)
+
+# ╔═╡ 28a86c8f-7de0-4e3d-81bb-5c371e28494b
+
+
+# ╔═╡ 85e8d9cc-211a-47ff-9963-671fd22e3744
+
+
+# ╔═╡ 73582e38-5bff-45bf-957c-76c31af91581
+
+
+# ╔═╡ 2c96d25e-698e-4858-a9b3-9118d11e223f
+
+
+# ╔═╡ ccedc075-7ad2-40df-95d4-caf1dbad54ae
+
+
+# ╔═╡ 4ef643cf-0597-492f-b01c-b33a92628ac5
+
+
+# ╔═╡ ecbb0746-54c1-4029-b9b8-3ea5413ae954
+changes_per_cell = map(state2["cell_order"]) do id
+	filter(cs) do c
+		c.cell_id == id
+	end
+end
+
+# ╔═╡ 916477bc-7a8e-4a9d-9803-ca36e58b4396
+function get_recursive_deps(state, cell_id)
+	map = getsub(state, Dict(), "cell_dependencies", cell_id, "upstream_cells_map")
+	# vcat(values(map)...)
+end
+
+# ╔═╡ 52a7aa4f-ecd0-415a-b827-7c06d783c27a
+state2["cell_dependencies"]
+
+# ╔═╡ 3d48523c-9e66-4c85-b5a4-c991ba1d07c9
+map(state2["cell_order"]) do c
+	get_recursive_deps(state2, c)
+end
+
+# ╔═╡ 6582655f-c8ce-4870-85c8-dbf1d90b604f
+state2
+
+# ╔═╡ 135e4ec3-dd15-490b-855b-6a258febf1e5
+function drama_new_error(state, cell_id, cell_changes)
+	
+end
+
+# ╔═╡ a801a854-d20c-49db-a080-a49a7fb323b9
+function drama_output_changed(state, cell_id, cell_changes)
+	
+end
+
+# ╔═╡ 9f9494ab-b994-4af3-9547-87eb10d1b9de
+ex = Meta.parse("""
+		   begin
+import X
+		   asdf
+		   end
+		   """)
+
+# ╔═╡ 2c992336-a2f8-412b-acca-cd84dbc48e7b
+import ExpressionExplorer
+
+# ╔═╡ edb3140c-d8ec-467f-ba53-74a5016b8735
+function drama_broken_import(state, cell_id, cell_changes)
+	if is_errored(state, cell_id, false)
+		code = getsub(state, "zzz", "cell_inputs", cell_id, "code")
+		ex = Meta.parse(code; raise=false)
+		does_imports = ex |> ExpressionExplorer.compute_usings_imports |> ExpressionExplorer.external_package_names
+
+		if !isempty(does_imports)
+			error("Something went wrong in the cell that imports $(does_imports)")
+		end
+	end
+end
+
+# ╔═╡ 8a7672ad-490b-4944-b59a-af3f97146752
+for (cell_id, change) in zip(state2["cell_order"], changes_per_cell)
+	drama_broken_import(state2, cell_id, change)
+end
+
+# ╔═╡ 7d7d0f25-b92b-433d-aa68-dc8b65390c1e
+ExpressionExplorer.compute_usings_imports(ex) |> ExpressionExplorer.external_package_names |> isempty
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+ExpressionExplorer = "21656369-7473-754a-2065-74616d696c43"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
 
 [compat]
+ExpressionExplorer = "~1.1.1"
 Pluto = "~0.20.4"
 """
 
@@ -137,7 +247,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.3"
 manifest_format = "2.0"
-project_hash = "e64b17606bfb7f96f1460d70da1fb118aa62347b"
+project_hash = "259e9a8d97a93dbc0ebd0326f5ef0a0763c78107"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -516,22 +626,41 @@ version = "17.4.0+2"
 
 # ╔═╡ Cell order:
 # ╠═aa68c324-eabf-11ef-2a75-19adc8937c8a
-# ╠═8b486212-c2c0-452b-bfcf-8e2454c06a17
-# ╠═ef2ea3a5-73de-4d43-9a0e-da768484ec87
+# ╠═420f67e2-ffa9-4323-9d9d-4a0e6c19b01b
 # ╟─af7c27ca-5f81-49be-86a9-74d52a90346a
+# ╟─8447d68b-eb5b-45ed-90d2-379747854b03
 # ╠═40e38f1f-7e7a-42c5-9bdc-ccaebba627d9
 # ╠═940105fc-2622-4f20-9826-8bb8ac2d5cd2
 # ╠═e46aec14-8e7c-453a-8aa2-cb1a50d99501
 # ╠═04d317ff-50dc-4dec-b543-8deb96964f9f
 # ╠═ae6c5709-bbda-44e4-8757-8e14554efe67
 # ╠═e4d7acdf-88d3-474f-b8e0-3bfb693e371a
-# ╠═760b8fef-55e6-40a8-9dc7-7e578f0a5c5b
 # ╠═dde77a7b-08f7-47bd-bf8c-1ed6d83d4d3e
 # ╠═a6a8e09a-f57c-457b-940d-d9a4b182b48b
 # ╠═55f93c0d-99af-4951-9eea-103cab827e18
 # ╠═757e75fd-1702-4822-a74c-49b61e22e350
+# ╠═343e3baa-921b-45af-8e19-077f6b098085
 # ╠═e8007d30-2b0a-46c4-80a7-a1d4367fb3a3
+# ╠═a245acaf-b112-4af0-ba4b-78fda3b2da8e
 # ╠═a341a46e-3dc5-4e21-9ebe-f9d45c5eb51e
 # ╠═4087533e-c54b-4cb9-b474-e82ad98b0229
+# ╠═28a86c8f-7de0-4e3d-81bb-5c371e28494b
+# ╠═85e8d9cc-211a-47ff-9963-671fd22e3744
+# ╠═73582e38-5bff-45bf-957c-76c31af91581
+# ╠═2c96d25e-698e-4858-a9b3-9118d11e223f
+# ╠═ccedc075-7ad2-40df-95d4-caf1dbad54ae
+# ╠═4ef643cf-0597-492f-b01c-b33a92628ac5
+# ╠═ecbb0746-54c1-4029-b9b8-3ea5413ae954
+# ╠═edb3140c-d8ec-467f-ba53-74a5016b8735
+# ╠═8a7672ad-490b-4944-b59a-af3f97146752
+# ╠═916477bc-7a8e-4a9d-9803-ca36e58b4396
+# ╠═52a7aa4f-ecd0-415a-b827-7c06d783c27a
+# ╠═3d48523c-9e66-4c85-b5a4-c991ba1d07c9
+# ╠═6582655f-c8ce-4870-85c8-dbf1d90b604f
+# ╠═135e4ec3-dd15-490b-855b-6a258febf1e5
+# ╠═a801a854-d20c-49db-a080-a49a7fb323b9
+# ╠═9f9494ab-b994-4af3-9547-87eb10d1b9de
+# ╠═7d7d0f25-b92b-433d-aa68-dc8b65390c1e
+# ╠═2c992336-a2f8-412b-acca-cd84dbc48e7b
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
