@@ -13,23 +13,114 @@ contents = read("./test.html", String)
 # ╔═╡ ef2ea3a5-73de-4d43-9a0e-da768484ec87
 Text(contents)
 
-# ╔═╡ 00734957-02ac-4f7c-a920-11d0b7b2b224
-start = findfirst("""<script data-pluto-file="launch-parameters">""", contents)
-
-# ╔═╡ 8c60e74f-c384-4703-9730-8e24c70aeee4
+# ╔═╡ af7c27ca-5f81-49be-86a9-74d52a90346a
 
 
-# ╔═╡ 1de0d527-31b4-4a73-8bfc-030bf190b075
-const _insertion_meta = """<meta name="pluto-insertion-spot-meta">"""
+# ╔═╡ 40e38f1f-7e7a-42c5-9bdc-ccaebba627d9
+state1_raw = read("./test1.plutostate")
 
-# ╔═╡ cf435329-d5a8-4520-bee3-55dd0b90c6a2
-const _insertion_parameters = """<meta name="pluto-insertion-spot-parameters">"""
+# ╔═╡ 940105fc-2622-4f20-9826-8bb8ac2d5cd2
+state1 = Pluto.unpack(state1_raw)
 
-# ╔═╡ 3b0e69bf-105f-4646-9e09-d975c52166f9
-stop = findfirst(_insertion_parameters, contents)
+# ╔═╡ e46aec14-8e7c-453a-8aa2-cb1a50d99501
+state2_raw = read("./test3.plutostate")
 
-# ╔═╡ 499217b3-6da4-4cba-a529-43939c0b0f43
-const _insertion_preload = """<meta name="pluto-insertion-spot-preload">"""
+# ╔═╡ 04d317ff-50dc-4dec-b543-8deb96964f9f
+state2 = Pluto.unpack(state2_raw)
+
+# ╔═╡ ae6c5709-bbda-44e4-8757-8e14554efe67
+diff = Pluto.Firebasey.diff(state1, state2)
+
+# ╔═╡ e4d7acdf-88d3-474f-b8e0-3bfb693e371a
+if any(p -> isempty(p.path), diff)
+	error("Completely different notebook")
+end
+
+# ╔═╡ 760b8fef-55e6-40a8-9dc7-7e578f0a5c5b
+filter(is_important, diff)
+
+# ╔═╡ dde77a7b-08f7-47bd-bf8c-1ed6d83d4d3e
+const safe_to_ignore_result_keys = (
+	"cell_id",
+	"depends_on_disabled_cells",
+	"depends_on_skipped_cells",
+	"published_object_keys",
+	"runtime",
+	"output/last_run_timestamp",
+	"output/persist_js_state",
+)
+
+# ╔═╡ a6a8e09a-f57c-457b-940d-d9a4b182b48b
+function getsub(object, default, next, key_list...)
+	if haskey(object, next)
+		val = get(object, next, default)
+
+		if length(key_list) >= 1
+			getsub(val, default, key_list[1], key_list[2:end]...)
+		else
+			val
+		end
+	else
+		default
+	end
+end
+
+# ╔═╡ 55f93c0d-99af-4951-9eea-103cab827e18
+getsub(state1, nothing, "cell_inputs", "ab4d46eb-d441-47c3-b061-2611b2e44009", "code_folded")
+
+# ╔═╡ 757e75fd-1702-4822-a74c-49b61e22e350
+function is_folded(state, cell_id, fallback=true)
+	getsub(state, fallback, "cell_inputs", cell_id, "code_folded")
+end
+
+# ╔═╡ 4087533e-c54b-4cb9-b474-e82ad98b0229
+begin
+	abstract type Change end
+
+
+	struct InputChanged <: Change
+		code_folded::Bool
+	end
+
+	struct ErrorChanged <: Change
+		new_errored::Bool
+	end
+
+	struct FoldedChanged <: Change
+		new_folded
+	end
+
+	struct Outputchanged <: Change
+	end
+
+end
+
+# ╔═╡ a341a46e-3dc5-4e21-9ebe-f9d45c5eb51e
+function changes(patch::Pluto.Firebasey.JSONPatch, newstate)
+	path = patch.path
+	if path[1] == "cell_inputs"
+		
+		InputChanged(
+				is_folded(newstate, get(path, 2, "asdf"))
+		)
+	elseif path[1] == "cell_results"
+		if length(path) >= 3
+			subpath = join(path[3:end],"/")
+			if any(s -> startswith(subpath, s), safe_to_ignore_result_keys)
+				false
+			else
+				true
+			end
+		else
+			true
+		end
+	else
+		false
+	end
+end
+
+# ╔═╡ e8007d30-2b0a-46c4-80a7-a1d4367fb3a3
+map(d -> changes(d, state2), diff)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -427,11 +518,20 @@ version = "17.4.0+2"
 # ╠═aa68c324-eabf-11ef-2a75-19adc8937c8a
 # ╠═8b486212-c2c0-452b-bfcf-8e2454c06a17
 # ╠═ef2ea3a5-73de-4d43-9a0e-da768484ec87
-# ╠═00734957-02ac-4f7c-a920-11d0b7b2b224
-# ╠═3b0e69bf-105f-4646-9e09-d975c52166f9
-# ╠═8c60e74f-c384-4703-9730-8e24c70aeee4
-# ╠═1de0d527-31b4-4a73-8bfc-030bf190b075
-# ╠═cf435329-d5a8-4520-bee3-55dd0b90c6a2
-# ╠═499217b3-6da4-4cba-a529-43939c0b0f43
+# ╟─af7c27ca-5f81-49be-86a9-74d52a90346a
+# ╠═40e38f1f-7e7a-42c5-9bdc-ccaebba627d9
+# ╠═940105fc-2622-4f20-9826-8bb8ac2d5cd2
+# ╠═e46aec14-8e7c-453a-8aa2-cb1a50d99501
+# ╠═04d317ff-50dc-4dec-b543-8deb96964f9f
+# ╠═ae6c5709-bbda-44e4-8757-8e14554efe67
+# ╠═e4d7acdf-88d3-474f-b8e0-3bfb693e371a
+# ╠═760b8fef-55e6-40a8-9dc7-7e578f0a5c5b
+# ╠═dde77a7b-08f7-47bd-bf8c-1ed6d83d4d3e
+# ╠═a6a8e09a-f57c-457b-940d-d9a4b182b48b
+# ╠═55f93c0d-99af-4951-9eea-103cab827e18
+# ╠═757e75fd-1702-4822-a74c-49b61e22e350
+# ╠═e8007d30-2b0a-46c4-80a7-a1d4367fb3a3
+# ╠═a341a46e-3dc5-4e21-9ebe-f9d45c5eb51e
+# ╠═4087533e-c54b-4cb9-b474-e82ad98b0229
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
