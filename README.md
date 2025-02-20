@@ -4,7 +4,7 @@ Compare two statefiles of the same notebook (e.g. after making a PR).
 This is useful in GitHub Actions (with PlutoSliderServer.jl). You can automatically find unexpected **new** errors, like:
 - Failing package imports
 - Errors that did not happen before
-
+- Tests about examples/results from the notebook
 
 
 
