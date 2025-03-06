@@ -177,23 +177,6 @@ cs = flatmap(d -> changes(d, state2), diff)
 # ╔═╡ ccedc075-7ad2-40df-95d4-caf1dbad54ae
 
 
-# ╔═╡ 4ef643cf-0597-492f-b01c-b33a92628ac5
-
-
-# ╔═╡ ecbb0746-54c1-4029-b9b8-3ea5413ae954
-#=╠═╡
-changes_per_cell = map(state2["cell_order"]) do id
-	filter(cs) do c
-		c.cell_id == id
-	end
-end
-  ╠═╡ =#
-
-# ╔═╡ d638130c-02f4-442c-b036-836731f83844
-#=╠═╡
-cs
-  ╠═╡ =#
-
 # ╔═╡ 786a675b-94dc-4b2a-ac22-182047182e8d
 struct DramaContext
 	old_state::Dict
@@ -206,16 +189,20 @@ struct DramaContext
 end
 
 # ╔═╡ e755dc2a-8c52-40c0-8bde-aba0f915bde7
-#=╠═╡
 function get_drama_context(state1, state2)
 	diff = Pluto.Firebasey.diff(state1, state2)
 	cs = flatmap(d -> changes(d, state2), diff)
+
+	changes_per_cell = map(state2["cell_order"]) do id
+		filter(cs) do c
+			c.cell_id == id
+		end
+	end
 
 	di = DramaContext(
 		state1, state2, state1["cell_order"], state2["cell_order"], diff, cs, changes_per_cell
 	)
 end
-  ╠═╡ =#
 
 # ╔═╡ 7ebe8d30-2289-49c2-9f83-9df17ac3880b
 #=╠═╡
@@ -756,9 +743,6 @@ version = "17.4.0+2"
 # ╠═73582e38-5bff-45bf-957c-76c31af91581
 # ╠═2c96d25e-698e-4858-a9b3-9118d11e223f
 # ╠═ccedc075-7ad2-40df-95d4-caf1dbad54ae
-# ╠═4ef643cf-0597-492f-b01c-b33a92628ac5
-# ╠═ecbb0746-54c1-4029-b9b8-3ea5413ae954
-# ╠═d638130c-02f4-442c-b036-836731f83844
 # ╠═e755dc2a-8c52-40c0-8bde-aba0f915bde7
 # ╠═786a675b-94dc-4b2a-ac22-182047182e8d
 # ╠═7ebe8d30-2289-49c2-9f83-9df17ac3880b

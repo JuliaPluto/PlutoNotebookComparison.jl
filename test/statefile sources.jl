@@ -95,10 +95,6 @@ make_test_dir() =
     end
     
     
-    
-    
-    
-    
     @testset "bad source – $(source)" for source in bad_sources
         
         # make a list, our source should have preference, but NOT work, so a fallback is used
@@ -114,22 +110,6 @@ make_test_dir() =
         end
     end
     
-    
-    
-    
-    
-    
-    
-    # index_json() =
-    #     JSON.parse(String(HTTP.get("http://localhost:$(port)/pluto_export.json").body))
-
-    # json_nbs() = index_json()["notebooks"] |> keys |> collect
-
-
-    
-    
-    
-    sleep(120)
     
     sleep(2)
     close(ready_result[].http_server)
