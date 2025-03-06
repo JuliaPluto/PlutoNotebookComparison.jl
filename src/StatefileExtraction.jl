@@ -32,6 +32,9 @@ end
 
 
 
+export StatefileSource, PSSCache, WebsiteAddress, WebsiteDir, StateFileSearchResult, get_statefile
+
+
 
 
 struct StateFileSearchResult
