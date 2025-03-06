@@ -7,9 +7,6 @@ using InteractiveUtils
 # ╔═╡ aa68c324-eabf-11ef-2a75-19adc8937c8a
 using Pluto
 
-# ╔═╡ 420f67e2-ffa9-4323-9d9d-4a0e6c19b01b
-
-
 # ╔═╡ af7c27ca-5f81-49be-86a9-74d52a90346a
 
 
@@ -19,24 +16,38 @@ md"""
 """
 
 # ╔═╡ 40e38f1f-7e7a-42c5-9bdc-ccaebba627d9
-state1_raw = read("./test1.plutostate")
+# ╠═╡ skip_as_script = true
+#=╠═╡
+state1_raw = read("../test/statefiles/test1.plutostate")
+  ╠═╡ =#
 
 # ╔═╡ 940105fc-2622-4f20-9826-8bb8ac2d5cd2
+#=╠═╡
 state1 = Pluto.unpack(state1_raw)
+  ╠═╡ =#
 
 # ╔═╡ e46aec14-8e7c-453a-8aa2-cb1a50d99501
-state2_raw = read("./test2.plutostate")
+# ╠═╡ skip_as_script = true
+#=╠═╡
+state2_raw = read("../test/statefiles/test3.plutostate")
+  ╠═╡ =#
 
 # ╔═╡ 04d317ff-50dc-4dec-b543-8deb96964f9f
+#=╠═╡
 state2 = Pluto.unpack(state2_raw)
+  ╠═╡ =#
 
 # ╔═╡ ae6c5709-bbda-44e4-8757-8e14554efe67
+#=╠═╡
 diff = Pluto.Firebasey.diff(state1, state2)
+  ╠═╡ =#
 
 # ╔═╡ e4d7acdf-88d3-474f-b8e0-3bfb693e371a
+#=╠═╡
 if any(p -> isempty(p.path), diff)
 	error("Completely different notebook")
 end
+  ╠═╡ =#
 
 # ╔═╡ dde77a7b-08f7-47bd-bf8c-1ed6d83d4d3e
 const safe_to_ignore_result_keys = (
@@ -65,7 +76,9 @@ function getsub(object, default, next, key_list...)
 end
 
 # ╔═╡ 55f93c0d-99af-4951-9eea-103cab827e18
+#=╠═╡
 getsub(state1, nothing, "cell_inputs", "ab4d46eb-d441-47c3-b061-2611b2e44009", "code_folded")
+  ╠═╡ =#
 
 # ╔═╡ 757e75fd-1702-4822-a74c-49b61e22e350
 function is_folded(state, cell_id, fallback=true)
@@ -107,7 +120,7 @@ begin
 end
 
 # ╔═╡ a341a46e-3dc5-4e21-9ebe-f9d45c5eb51e
-function changes(patch::Pluto.Firebasey.JSONPatch, newstate)
+function changes(patch::Pluto.Firebasey.JSONPatch, newstate)::Vector{Change}
 	path = patch.path
 	cell_id = get(path, 2, "notfound")
 	if path[1] == "cell_inputs"
@@ -116,35 +129,38 @@ function changes(patch::Pluto.Firebasey.JSONPatch, newstate)
 		just_a_fold = length(path) == 3 && path[3] == "code_folded"
 		T = just_a_fold ? FoldedChanged : CodeChanged
 		
-		[T(cell_id, is_folded(newstate, cell_id))]
+		Change[T(cell_id, is_folded(newstate, cell_id))]
 	elseif path[1] == "cell_results"
 		@assert length(path) >= 2
 
 		if length(path) >= 3
 			subpath = join(path[3:end],"/")
 			if any(s -> startswith(subpath, s), safe_to_ignore_result_keys)
-				[]
+				Change[]
 			else
 				if subpath == "errored"
-					[ErrorChanged(cell_id, is_errored(newstate, cell_id))]
+					Change[ErrorChanged(cell_id, is_errored(newstate, cell_id))]
 				else
-					[Outputchanged(cell_id)]
+					Change[Outputchanged(cell_id)]
 				end
 			end
 		else
 			# all possible changes
-			[
+			Change[
 				Outputchanged(cell_id), 
 				ErrorChanged(cell_id, is_errored(newstate, cell_id)),
 			]
 		end
 	else
-		[]
+		# the rest doesnt really matter
+		Change[]
 	end
 end
 
 # ╔═╡ e8007d30-2b0a-46c4-80a7-a1d4367fb3a3
+#=╠═╡
 cs = flatmap(d -> changes(d, state2), diff)
+  ╠═╡ =#
 
 # ╔═╡ 28a86c8f-7de0-4e3d-81bb-5c371e28494b
 
@@ -165,11 +181,97 @@ cs = flatmap(d -> changes(d, state2), diff)
 
 
 # ╔═╡ ecbb0746-54c1-4029-b9b8-3ea5413ae954
+#=╠═╡
 changes_per_cell = map(state2["cell_order"]) do id
 	filter(cs) do c
 		c.cell_id == id
 	end
 end
+  ╠═╡ =#
+
+# ╔═╡ d638130c-02f4-442c-b036-836731f83844
+#=╠═╡
+cs
+  ╠═╡ =#
+
+# ╔═╡ 786a675b-94dc-4b2a-ac22-182047182e8d
+struct DramaContext
+	old_state::Dict
+	new_state::Dict
+	old_cell_order::Vector{String}
+	new_cell_order::Vector{String}
+	diff::Vector{Pluto.Firebasey.JSONPatch}
+	changes::Vector{Change}
+	changes_per_cell::Vector{Vector{Change}}
+end
+
+# ╔═╡ e755dc2a-8c52-40c0-8bde-aba0f915bde7
+#=╠═╡
+function get_drama_context(state1, state2)
+	diff = Pluto.Firebasey.diff(state1, state2)
+	cs = flatmap(d -> changes(d, state2), diff)
+
+	di = DramaContext(
+		state1, state2, state1["cell_order"], state2["cell_order"], diff, cs, changes_per_cell
+	)
+end
+  ╠═╡ =#
+
+# ╔═╡ 7ebe8d30-2289-49c2-9f83-9df17ac3880b
+#=╠═╡
+di = get_drama_context(state1, state2)
+  ╠═╡ =#
+
+# ╔═╡ fa92db07-67ad-4e0f-9254-62a94ac370dc
+
+
+# ╔═╡ e658eb77-6185-44be-a3b0-65c5a7437baa
+
+
+# ╔═╡ a57abe11-274b-414a-aa42-9e034768e78a
+
+
+# ╔═╡ e1168ad4-ef52-4d75-8ab7-cfd903303261
+
+
+# ╔═╡ 0799a467-2fe9-4cc9-ab91-dcf6dbb3973d
+
+
+# ╔═╡ 098ee496-b284-4f11-86d1-d9b23d74faa1
+
+
+# ╔═╡ 890552e5-05a6-471d-8be9-7ff50ffa1526
+function drama_broken_import(di::DramaContext)
+	for (cell_id, change) in zip(di.new_cell_order, di.changes_per_cell)
+		drama_broken_import(di.new_state, cell_id, change)
+	end
+end
+
+# ╔═╡ e44ccceb-32ac-4af5-8bfd-ea00cd04883e
+
+
+# ╔═╡ 1877f8d8-a3b9-4015-b301-f2e0d0b86f50
+
+
+# ╔═╡ 135e4ec3-dd15-490b-855b-6a258febf1e5
+function drama_new_error(di::DramaContext)
+	for ch in di.changes
+		if ch isa ErrorChanged && ch.new_errored
+			error("New error! Cell $(ch.cell_id)")
+		end
+	end
+end
+
+# ╔═╡ 0785487e-1653-4d16-ad12-7d141bd61a56
+#=╠═╡
+drama_new_error(di)
+  ╠═╡ =#
+
+# ╔═╡ 1f1ba51d-f8ef-4d6e-b627-5c347508936f
+
+
+# ╔═╡ 19534135-1dfb-406e-a506-19d73920353d
+
 
 # ╔═╡ 916477bc-7a8e-4a9d-9803-ca36e58b4396
 function get_recursive_deps(state, cell_id)
@@ -178,20 +280,21 @@ function get_recursive_deps(state, cell_id)
 end
 
 # ╔═╡ 52a7aa4f-ecd0-415a-b827-7c06d783c27a
+#=╠═╡
 state2["cell_dependencies"]
+  ╠═╡ =#
 
 # ╔═╡ 3d48523c-9e66-4c85-b5a4-c991ba1d07c9
+#=╠═╡
 map(state2["cell_order"]) do c
 	get_recursive_deps(state2, c)
 end
+  ╠═╡ =#
 
 # ╔═╡ 6582655f-c8ce-4870-85c8-dbf1d90b604f
+#=╠═╡
 state2
-
-# ╔═╡ 135e4ec3-dd15-490b-855b-6a258febf1e5
-function drama_new_error(state, cell_id, cell_changes)
-	
-end
+  ╠═╡ =#
 
 # ╔═╡ a801a854-d20c-49db-a080-a49a7fb323b9
 function drama_output_changed(state, cell_id, cell_changes)
@@ -199,12 +302,15 @@ function drama_output_changed(state, cell_id, cell_changes)
 end
 
 # ╔═╡ 9f9494ab-b994-4af3-9547-87eb10d1b9de
+# ╠═╡ skip_as_script = true
+#=╠═╡
 ex = Meta.parse("""
 		   begin
 import X
 		   asdf
 		   end
 		   """)
+  ╠═╡ =#
 
 # ╔═╡ 2c992336-a2f8-412b-acca-cd84dbc48e7b
 import ExpressionExplorer
@@ -222,13 +328,15 @@ function drama_broken_import(state, cell_id, cell_changes)
 	end
 end
 
-# ╔═╡ 8a7672ad-490b-4944-b59a-af3f97146752
-for (cell_id, change) in zip(state2["cell_order"], changes_per_cell)
-	drama_broken_import(state2, cell_id, change)
-end
+# ╔═╡ 284f564e-4f59-43be-9f20-449c002350c1
+#=╠═╡
+drama_broken_import(di)
+  ╠═╡ =#
 
 # ╔═╡ 7d7d0f25-b92b-433d-aa68-dc8b65390c1e
+#=╠═╡
 ExpressionExplorer.compute_usings_imports(ex) |> ExpressionExplorer.external_package_names |> isempty
+  ╠═╡ =#
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -626,7 +734,6 @@ version = "17.4.0+2"
 
 # ╔═╡ Cell order:
 # ╠═aa68c324-eabf-11ef-2a75-19adc8937c8a
-# ╠═420f67e2-ffa9-4323-9d9d-4a0e6c19b01b
 # ╟─af7c27ca-5f81-49be-86a9-74d52a90346a
 # ╟─8447d68b-eb5b-45ed-90d2-379747854b03
 # ╠═40e38f1f-7e7a-42c5-9bdc-ccaebba627d9
@@ -651,13 +758,29 @@ version = "17.4.0+2"
 # ╠═ccedc075-7ad2-40df-95d4-caf1dbad54ae
 # ╠═4ef643cf-0597-492f-b01c-b33a92628ac5
 # ╠═ecbb0746-54c1-4029-b9b8-3ea5413ae954
+# ╠═d638130c-02f4-442c-b036-836731f83844
+# ╠═e755dc2a-8c52-40c0-8bde-aba0f915bde7
+# ╠═786a675b-94dc-4b2a-ac22-182047182e8d
+# ╠═7ebe8d30-2289-49c2-9f83-9df17ac3880b
+# ╠═fa92db07-67ad-4e0f-9254-62a94ac370dc
+# ╠═e658eb77-6185-44be-a3b0-65c5a7437baa
+# ╠═a57abe11-274b-414a-aa42-9e034768e78a
+# ╠═e1168ad4-ef52-4d75-8ab7-cfd903303261
+# ╠═0799a467-2fe9-4cc9-ab91-dcf6dbb3973d
+# ╠═098ee496-b284-4f11-86d1-d9b23d74faa1
+# ╠═284f564e-4f59-43be-9f20-449c002350c1
+# ╠═890552e5-05a6-471d-8be9-7ff50ffa1526
 # ╠═edb3140c-d8ec-467f-ba53-74a5016b8735
-# ╠═8a7672ad-490b-4944-b59a-af3f97146752
+# ╠═e44ccceb-32ac-4af5-8bfd-ea00cd04883e
+# ╠═1877f8d8-a3b9-4015-b301-f2e0d0b86f50
+# ╠═0785487e-1653-4d16-ad12-7d141bd61a56
+# ╠═135e4ec3-dd15-490b-855b-6a258febf1e5
+# ╠═1f1ba51d-f8ef-4d6e-b627-5c347508936f
+# ╠═19534135-1dfb-406e-a506-19d73920353d
 # ╠═916477bc-7a8e-4a9d-9803-ca36e58b4396
 # ╠═52a7aa4f-ecd0-415a-b827-7c06d783c27a
 # ╠═3d48523c-9e66-4c85-b5a4-c991ba1d07c9
 # ╠═6582655f-c8ce-4870-85c8-dbf1d90b604f
-# ╠═135e4ec3-dd15-490b-855b-6a258febf1e5
 # ╠═a801a854-d20c-49db-a080-a49a7fb323b9
 # ╠═9f9494ab-b994-4af3-9547-87eb10d1b9de
 # ╠═7d7d0f25-b92b-433d-aa68-dc8b65390c1e
