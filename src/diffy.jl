@@ -249,10 +249,14 @@ end
 # ╔═╡ 3558d1ad-2987-45fb-bc33-a3656ee32494
 function preview_cell(state, cell_id)::String
 	code = getsub(state, "---unknown---", "cell_inputs", cell_id, "code")
-	output = getsub(state, "---unknown---", "cell_results", cell_id, "output")
+	output = @something(
+		getsub(state, nothing, "cell_results", cell_id, "output", "msg"),
+		getsub(state, nothing, "cell_results", cell_id, "output", "body"),
+		getsub(state, "---unknown---", "cell_results", cell_id, "output")
+	)
+	cellnum = findfirst(isequal(cell_id), state["cell_order"])
 
-
-	"\n\n\n# Code:\n========\n\n$(code)\n\n# Cell output:\n===============\n\n$(output)\n\n"
+	"(Cell #$(cellnum))\n\n\n# Code:\n========\n\n$(code)\n\n# Cell output:\n===============\n\n$(output)\n\n"
 end
 
 # ╔═╡ 135e4ec3-dd15-490b-855b-6a258febf1e5
@@ -271,7 +275,7 @@ drama_new_error(di)
 
 # ╔═╡ fda9e334-8a4f-4b0e-93fe-cf01dac61e50
 #=╠═╡
-preview_cell(state1, state1["cell_order"][1]) |> Text
+preview_cell(state2, state1["cell_order"][1]) |> Text
   ╠═╡ =#
 
 # ╔═╡ d0946ad7-f4e1-4ff3-bf19-2db3ec9d3445
