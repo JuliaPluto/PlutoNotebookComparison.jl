@@ -114,7 +114,7 @@ function get_statefile(source::SafePreview, root_dir::AbstractString, notebook_p
     path = joinpath(root_dir, notebook_path)
     
     sesh = Pluto.ServerSession()
-    Pluto.SessionActions.open(sesh, path; execution_allowed=false, run_async=false)
+    notebook = Pluto.SessionActions.open(sesh, path; execution_allowed=false, run_async=false)
     
     state = Pluto.pack(Pluto.notebook_to_js(notebook))
     StateFileSearchResult(true, source, state)
