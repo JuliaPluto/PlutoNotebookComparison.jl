@@ -63,6 +63,8 @@ make_test_dir() =
         PlutoNotebookComparison.PSSCache(cache_dir),
         PlutoNotebookComparison.WebsiteDir(output_dir),
         PlutoNotebookComparison.WebsiteAddress("http://localhost:$(port)"),
+        PlutoNotebookComparison.SafePreview(),
+        PlutoNotebookComparison.RunWithPlutoSliderServer(; Pluto_evaluation_workspace_use_distributed=false),
     ]
     
     bad_sources = [
