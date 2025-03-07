@@ -91,9 +91,9 @@ end
 
 
 #########
-# Vector{StatefileSource}
+# Vector{<:StatefileSource}
 
-function get_statefile(sources::Vector{StatefileSource}, path::String, contents::String)
+function get_statefile(sources::Vector{<:StatefileSource}, path::String, contents::String)
     for source in sources
         result = get_statefile(source, path, contents)
         if result.found
