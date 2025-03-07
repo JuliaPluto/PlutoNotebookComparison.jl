@@ -1,10 +1,15 @@
 module PlutoNotebookComparison
 
 
-
+module Glitter
 include("./Glitter.jl")
+end
 import .Glitter
 export Glitter
+
+
+
+
 include("./StatefileExtraction.jl")
 
 include("./diffy.jl")
