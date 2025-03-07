@@ -62,7 +62,7 @@ const safe_to_ignore_result_keys = (
 
 # ╔═╡ a6a8e09a-f57c-457b-940d-d9a4b182b48b
 function getsub(object, default, next, key_list...)
-	if haskey(object, next)
+	if Base.applicable(haskey, object, next) && haskey(object, next)
 		val = get(object, next, default)
 
 		if length(key_list) >= 1
@@ -250,7 +250,7 @@ end
 function preview_cell(state, cell_id)::String
 	code = getsub(state, "---unknown---", "cell_inputs", cell_id, "code")
 	output = @something(
-		getsub(state, nothing, "cell_results", cell_id, "output", "msg"),
+		getsub(state, nothing, "cell_results", cell_id, "output", "body", "msg"),
 		getsub(state, nothing, "cell_results", cell_id, "output", "body"),
 		getsub(state, "---unknown---", "cell_results", cell_id, "output")
 	)
