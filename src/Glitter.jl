@@ -12,14 +12,16 @@ end
 
 
 
-function branch_tree(repo::GitRepo, branch_name=nothing)
+function branch_tree(repo::GitRepo, branch_name=nothing, is_branch_remote::Bool=false)
     main_ref = if branch_name === nothing
         @something(
             LibGit2.lookup_branch(repo, "main", false),
+            LibGit2.lookup_branch(repo, "origin/main", true),
             LibGit2.lookup_branch(repo, "master", false),
+            LibGit2.lookup_branch(repo, "origin/master", true),
         )
     else
-        LibGit2.lookup_branch(repo, branch_name, false)
+        LibGit2.lookup_branch(repo, branch_name, is_branch_remote)
     end
     main_tree = LibGit2.peel(LibGit2.GitTree, main_ref)
 end
