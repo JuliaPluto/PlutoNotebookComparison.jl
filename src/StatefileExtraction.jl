@@ -129,7 +129,7 @@ end
 
 function get_statefile(sources::Vector{<:StatefileSource}, root_dir::AbstractString, notebook_path::String, notebook_file_contents::String)
     for source in sources
-        result = get_statefile(source, path, contents)
+        result = get_statefile(source, root_dir, notebook_path, notebook_file_contents)
         if result.found
             return result
         end
