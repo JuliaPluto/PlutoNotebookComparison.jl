@@ -27,7 +27,7 @@ function compare_PR(dir::AbstractString;
         diff::LibGit2.GitDiff=Glitter.PR_diff(LibGit2.GitRepo(dir)),
         sources_old::Vector{<:StatefileSource}, 
         sources_new::Vector{<:StatefileSource}=sources_old,
-        # require_check::Bool=true,
+        require_check::Bool=true,
         drama_checkers::Vector{Function}=maximum_drama,
     )
     pr_deltas = Glitter.deltas(diff)
@@ -35,7 +35,7 @@ function compare_PR(dir::AbstractString;
     all_notebooks = PlutoSliderServer.find_notebook_files_recursive(dir)
     
     for path in all_notebooks
-        @info "Notebook" path
+        @info "🍄 Notebook" path
         
         delta = find(d -> unsafe_string(d.new_file.path) == path, pr_deltas)
         
@@ -51,25 +51,28 @@ function compare_PR(dir::AbstractString;
             statefile_old = PlutoNotebookComparison.get_statefile(sources_old, path_old, contents_old)
             statefile_new = PlutoNotebookComparison.get_statefile(sources_new, path_new, contents_new)
             
-            @info "Search results" path statefile_old statefile_new
+            @info "Search results" path statefile_old.source statefile_new.source
 
-            @assert statefile_old.found
-            @assert statefile_new.found
+            if statefile_old.found && statefile_new.found
             
-            state_old = Pluto.unpack(statefile_old.result)
-            state_new = Pluto.unpack(statefile_new.result)
+                state_old = Pluto.unpack(statefile_old.result)
+                state_new = Pluto.unpack(statefile_new.result)
 
-            drama_context = PlutoNotebookComparison.get_drama_context(state_old, state_new)
-            
-            for f in drama_checkers
-                @info "checking" path f
-                f(drama_context)
+                drama_context = PlutoNotebookComparison.get_drama_context(state_old, state_new)
+                
+                for f in drama_checkers
+                    @info "checking" path f
+                    f(drama_context)
+                end
+            else
+                @warn "No statefile found for this notebook, not checking..." path statefile_old.found statefile_new.found
+                require_check && error("No statefile found, see logs. Set require_check=false to allow this.")
             end
         else
             @info "skipping..." path
         end
     end
-
+    @info "✅ All notebooks passed without drama"
 end
 
 

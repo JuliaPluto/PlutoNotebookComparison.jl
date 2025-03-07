@@ -240,11 +240,26 @@ end
 # ╔═╡ 1877f8d8-a3b9-4015-b301-f2e0d0b86f50
 
 
+# ╔═╡ 1f1ba51d-f8ef-4d6e-b627-5c347508936f
+
+
+# ╔═╡ 19534135-1dfb-406e-a506-19d73920353d
+
+
+# ╔═╡ 3558d1ad-2987-45fb-bc33-a3656ee32494
+function preview_cell(state, cell_id)::String
+	code = getsub(state, "---unknown---", "cell_inputs", cell_id, "code")
+	output = getsub(state, "---unknown---", "cell_results", cell_id, "output")
+
+
+	"\n\n\n# Code:\n========\n\n$(code)\n\n# Cell output:\n===============\n\n$(output)\n\n"
+end
+
 # ╔═╡ 135e4ec3-dd15-490b-855b-6a258febf1e5
 function drama_new_error(di::DramaContext)
 	for ch in di.changes
 		if ch isa ErrorChanged && ch.new_errored
-			error("New error! Cell $(ch.cell_id)")
+			error("New error! Cell $(ch.cell_id).$(preview_cell(state, ch.cell_id))")
 		end
 	end
 end
@@ -254,10 +269,12 @@ end
 drama_new_error(di)
   ╠═╡ =#
 
-# ╔═╡ 1f1ba51d-f8ef-4d6e-b627-5c347508936f
+# ╔═╡ fda9e334-8a4f-4b0e-93fe-cf01dac61e50
+#=╠═╡
+preview_cell(state1, state1["cell_order"][1]) |> Text
+  ╠═╡ =#
 
-
-# ╔═╡ 19534135-1dfb-406e-a506-19d73920353d
+# ╔═╡ d0946ad7-f4e1-4ff3-bf19-2db3ec9d3445
 
 
 # ╔═╡ 916477bc-7a8e-4a9d-9803-ca36e58b4396
@@ -305,12 +322,14 @@ import ExpressionExplorer
 # ╔═╡ edb3140c-d8ec-467f-ba53-74a5016b8735
 function drama_broken_import(state, cell_id, cell_changes)
 	if is_errored(state, cell_id, false)
-		code = getsub(state, "zzz", "cell_inputs", cell_id, "code")
+		code = getsub(state, "---unknown---", "cell_inputs", cell_id, "code")
+
+		
 		ex = Meta.parse(code; raise=false)
 		does_imports = ex |> ExpressionExplorer.compute_usings_imports |> ExpressionExplorer.external_package_names
 
 		if !isempty(does_imports)
-			error("Something went wrong in the cell that imports $(does_imports)")
+			error("Something went wrong in the cell that imports $(does_imports).$(preview_cell(state, cell_id))")
 		end
 	end
 end
@@ -761,6 +780,9 @@ version = "17.4.0+2"
 # ╠═135e4ec3-dd15-490b-855b-6a258febf1e5
 # ╠═1f1ba51d-f8ef-4d6e-b627-5c347508936f
 # ╠═19534135-1dfb-406e-a506-19d73920353d
+# ╠═3558d1ad-2987-45fb-bc33-a3656ee32494
+# ╠═fda9e334-8a4f-4b0e-93fe-cf01dac61e50
+# ╠═d0946ad7-f4e1-4ff3-bf19-2db3ec9d3445
 # ╠═916477bc-7a8e-4a9d-9803-ca36e58b4396
 # ╠═52a7aa4f-ecd0-415a-b827-7c06d783c27a
 # ╠═3d48523c-9e66-4c85-b5a4-c991ba1d07c9
