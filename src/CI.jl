@@ -25,8 +25,8 @@ const maximum_drama = [
 
 function compare_PR(dir::AbstractString;
         diff::LibGit2.GitDiff=Glitter.PR_diff(LibGit2.GitRepo(dir)),
-        sources_old::Vector{StatefileSource}, 
-        sources_new::Vector{StatefileSource}=sources_old,
+        sources_old::Vector{<:StatefileSource}, 
+        sources_new::Vector{<:StatefileSource}=sources_old,
         # require_check::Bool=true,
         drama_checkers::Vector{Function}=maximum_drama,
     )
