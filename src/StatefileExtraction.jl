@@ -100,7 +100,7 @@ function get_statefile(source::RunWithPlutoSliderServer, root_dir::AbstractStrin
     path = joinpath(root_dir, notebook_path)
     
     output_dir = mktempdir()
-    PlutoSliderServer.export_notebook(; 
+    PlutoSliderServer.export_notebook(path; 
         Export_output_dir=output_dir, Export_baked_state=false, source.kwargs...
     )
     
