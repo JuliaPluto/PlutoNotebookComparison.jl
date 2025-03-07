@@ -40,6 +40,8 @@ function compare_PR(dir::AbstractString;
         delta = find(d -> unsafe_string(d.new_file.path) == path, pr_deltas)
         
         if delta !== nothing && Glitter.is_modified(delta)
+            repo = diff.owner
+
             contents_old = Glitter.contents(repo, delta.old_file)
             contents_new = Glitter.contents(repo, delta.new_file)
             
