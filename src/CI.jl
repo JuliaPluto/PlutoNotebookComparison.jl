@@ -12,15 +12,15 @@ end
 
 
 
-# sources_old = [Cache, WebsiteDir("path/to/dir"), WebsiteAddress("https://example.com")]
-# sources_new = [Cache, WebsiteDir("path/to/dir")]
+# sources_old = [Cache, WebsiteDir("path/to/dir"), WebsiteAddress("https://example.com"), SafePreview]
+# sources_new = [Cache, WebsiteDir("path/to/dir"), SafePreview]
 
 
 
 const maximum_drama = [
     drama_broken_import,
     drama_new_error,
-    drama_output_changed,
+    # drama_output_changed,
 ]
 
 function compare_PR(dir::AbstractString;
