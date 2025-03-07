@@ -30,9 +30,20 @@ struct WebsiteAddress <: StatefileSource
     root_url::String
 end
 
+struct RunWithPlutoSliderServer <: StatefileSource
+    kwargs
+end
+
+RunWithPlutoSliderServer(; kwargs...) = RunWithPlutoSliderServer(kwargs)
 
 
-export StatefileSource, PSSCache, WebsiteAddress, WebsiteDir, StateFileSearchResult, get_statefile
+struct SafePreview <: StatefileSource
+end
+
+
+
+export StatefileSource, PSSCache, WebsiteAddress, WebsiteDir, RunWithPlutoSliderServer, SafePreview
+export StateFileSearchResult, get_statefile
 
 
 
@@ -47,7 +58,7 @@ end
 
 
 
-function get_statefile(source::PSSCache, notebook_path::String, notebook_file_contents::String)
+function get_statefile(source::PSSCache, root_dir::AbstractString, notebook_path::String, notebook_file_contents::String)
     h = PlutoSliderServer.plutohash(notebook_file_contents)
     cfn = PlutoSliderServer.cache_filename(source.root_dir_path, h)
     
@@ -60,7 +71,7 @@ end
 
 
 
-function get_statefile(source::WebsiteDir, notebook_path::String, notebook_file_contents::String)
+function get_statefile(source::WebsiteDir, root_dir::AbstractString, notebook_path::String, notebook_file_contents::String)
     path = without_pluto_file_extension(notebook_path) * ".plutostate"
     fullpath = joinpath(source.root_dir_path, path)
     
@@ -72,7 +83,7 @@ function get_statefile(source::WebsiteDir, notebook_path::String, notebook_file_
 end
 
 
-function get_statefile(source::WebsiteAddress, notebook_path::String, notebook_file_contents::String)
+function get_statefile(source::WebsiteAddress, root_dir::AbstractString, notebook_path::String, notebook_file_contents::String)
     path = without_pluto_file_extension(notebook_path) * ".plutostate"
     url = URIs.resolvereference(source.root_url, path)
     
@@ -85,6 +96,29 @@ function get_statefile(source::WebsiteAddress, notebook_path::String, notebook_f
 end
 
 
+function get_statefile(source::RunWithPlutoSliderServer, root_dir::AbstractString, notebook_path::String, notebook_file_contents::String)
+    path = joinpath(root_dir, notebook_path)
+    
+    output_dir = mktempdir()
+    PlutoSliderServer.export_notebook(; 
+        Export_output_dir=output_dir, Export_baked_state=false, source.kwargs...
+    )
+    
+    statefile_path = filter(endswith(".plutostate"), readdir(output_dir; join=true)) |> only
+    
+    StateFileSearchResult(true, source, read(statefile_path))
+end
+
+
+function get_statefile(source::SafePreview, root_dir::AbstractString, notebook_path::String, notebook_file_contents::String)
+    path = joinpath(root_dir, notebook_path)
+    
+    sesh = Pluto.ServerSession()
+    Pluto.SessionActions.open(sesh, path; execution_allowed=false, run_async=false)
+    
+    state = Pluto.pack(Pluto.notebook_to_js(notebook))
+    StateFileSearchResult(true, source, state)
+end
 
 
 
@@ -93,7 +127,7 @@ end
 #########
 # Vector{<:StatefileSource}
 
-function get_statefile(sources::Vector{<:StatefileSource}, path::String, contents::String)
+function get_statefile(sources::Vector{<:StatefileSource}, root_dir::AbstractString, notebook_path::String, notebook_file_contents::String)
     for source in sources
         result = get_statefile(source, path, contents)
         if result.found

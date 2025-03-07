@@ -85,7 +85,7 @@ make_test_dir() =
         
         @testset "$(path)" for path in paths
             contents = read(joinpath(test_dir, path), String)
-            result = PlutoNotebookComparison.get_statefile(sources, path, contents)
+            result = PlutoNotebookComparison.get_statefile(sources, test_dir, path, contents)
             
             @test result.found
             @test result.source === source
@@ -103,7 +103,7 @@ make_test_dir() =
         
         for path in paths
             contents = read(joinpath(test_dir, path), String)
-            result = PlutoNotebookComparison.get_statefile(sources, path, contents)
+            result = PlutoNotebookComparison.get_statefile(sources, test_dir, path, contents)
             
             @test result.found
             @test result.source !== source

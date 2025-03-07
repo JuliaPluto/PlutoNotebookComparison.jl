@@ -48,8 +48,8 @@ function compare_PR(dir::AbstractString;
             path_old = unsafe_string(delta.old_file.path)
             path_new = unsafe_string(delta.new_file.path)
             
-            statefile_old = PlutoNotebookComparison.get_statefile(sources_old, path_old, contents_old)
-            statefile_new = PlutoNotebookComparison.get_statefile(sources_new, path_new, contents_new)
+            statefile_old = PlutoNotebookComparison.get_statefile(sources_old, dir, path_old, contents_old)
+            statefile_new = PlutoNotebookComparison.get_statefile(sources_new, dir, path_new, contents_new)
             
             @info "Search results" path statefile_old.source statefile_new.source
 
