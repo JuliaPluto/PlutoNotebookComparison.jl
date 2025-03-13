@@ -1,19 +1,36 @@
 using Test
-
 using PlutoNotebookComparison
 
+good1 = checkout_test_repo(; branch_name="good1")
+bad_error = checkout_test_repo(; branch_name="bad-error")
+# main = checkout_test_repo(; branch_name="main")
 
-dir = joinpath(@__DIR__, "statefiles")
+@testset "CI for PR" begin
 
+    sources_old = [
+        # PSSCache("pluto_state_cache")
+        # WebsiteDir("gh_pages_dir")
+        # WebsiteAddress("https://biaslab.github.io/BMLIP-colorized/")
+        SafePreview()
+    ]
 
-sources = [
-    PSSCache(dir)
-    WebsiteDir(dir)
-]
-repo = PlutoNotebookComparison.LibGit2.GitRepo(joinpath(@__DIR__, ".."))
+    sources_new = [
+        # PSSCache("pluto_state_cache")
+        RunWithPlutoSliderServer()
+    ]
 
-PlutoNotebookComparison.compare_PR(dir;
-    diff=Glitter.PR_diff(repo),
-    sources_old=sources,
-    sources_new=sources,
-)
+    @testset "good" begin
+        PlutoNotebookComparison.compare_PR(good1;
+            sources_old,
+            sources_new,
+        )
+        @test true
+    end
+    
+    @testset "bad error" begin
+        @test_throws Exception PlutoNotebookComparison.compare_PR(bad_error;
+            sources_old,
+            sources_new,
+        )
+    end
+end
