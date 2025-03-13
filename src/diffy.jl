@@ -263,7 +263,7 @@ end
 function drama_new_error(di::DramaContext)
 	for ch in di.changes
 		if ch isa ErrorChanged && ch.new_errored
-			error("New error! Cell $(ch.cell_id).$(preview_cell(state, ch.cell_id))")
+			error("New error! Cell $(ch.cell_id).$(preview_cell(di.new_state, ch.cell_id))")
 		end
 	end
 end

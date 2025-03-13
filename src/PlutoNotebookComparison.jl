@@ -10,6 +10,8 @@ export Glitter
 
 
 
+include("./LoggingUtils.jl")
+import .LoggingUtils
 include("./StatefileExtraction.jl")
 
 include("./diffy.jl")
