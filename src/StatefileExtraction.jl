@@ -100,7 +100,7 @@ function get_statefile(source::RunWithPlutoSliderServer, root_dir::AbstractStrin
     path = joinpath(root_dir, notebook_path)
     
     output_dir = mktempdir()
-    with_logging_context("From PlutoSliderServer: ") do
+    with_logging_context("(PSS) ") do
         PlutoSliderServer.export_notebook(path; 
             Export_output_dir=output_dir, Export_baked_state=false, source.kwargs...
         )
@@ -115,7 +115,7 @@ end
 function get_statefile(source::SafePreview, root_dir::AbstractString, notebook_path::String, notebook_file_contents::String)
     path = joinpath(root_dir, notebook_path)
     
-    state = with_logging_context("From Pluto: ") do
+    state = with_logging_context("(Pluto) ") do
         sesh = Pluto.ServerSession()
         notebook = Pluto.SessionActions.open(sesh, path; execution_allowed=false, run_async=false)
         state = Pluto.pack(Pluto.notebook_to_js(notebook))
