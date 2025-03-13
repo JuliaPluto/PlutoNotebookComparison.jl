@@ -3,17 +3,26 @@ using Test
 using PlutoNotebookComparison
 
 
-dir = joinpath(@__DIR__, "statefiles")
 
 
-sources = [
-    PSSCache(dir)
-    WebsiteDir(dir)
+good1 = checkout_test_repo(; branch_name="origin/good1")
+main = checkout_test_repo(; branch_name="origin/main")
+
+
+
+sources_old = [
+    # PSSCache("pluto_state_cache")
+    # WebsiteDir("gh_pages_dir")
+    # WebsiteAddress("https://biaslab.github.io/BMLIP-colorized/")
+    SafePreview()
 ]
-repo = PlutoNotebookComparison.LibGit2.GitRepo(joinpath(@__DIR__, ".."))
 
-PlutoNotebookComparison.compare_PR(dir;
-    diff=Glitter.PR_diff(repo),
-    sources_old=sources,
-    sources_new=sources,
+sources_new = [
+    # PSSCache("pluto_state_cache")
+    RunWithPlutoSliderServer()
+]
+
+PlutoNotebookComparison.compare_PR(good1;
+    sources_old,
+    sources_new,
 )
