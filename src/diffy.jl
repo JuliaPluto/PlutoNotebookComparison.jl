@@ -246,7 +246,32 @@ md"""
 """
 
 # ╔═╡ 1f1ba51d-f8ef-4d6e-b627-5c347508936f
+md"""
+# `DramaRestartRequired`
+"""
 
+# ╔═╡ 58120091-a338-46fc-b5e6-2a19704844cb
+begin
+	struct DramaRestartRequired <: AbstractDrama
+	end
+	
+	function check_drama(::DramaRestartRequired, di::DramaContext)
+		nbpkg = di.new_state["nbpkg"]
+		if nbpkg !== nothing
+			@assert !nbpkg["waiting_for_permission"]
+			# @assert nbpkg["instantiated"]
+			@assert nbpkg["restart_recommended_msg"] === nothing nbpkg["restart_recommended_msg"]
+			@assert nbpkg["restart_required_msg"] === nothing nbpkg["restart_required_msg"]
+		end
+	end
+
+	should_check_drama(::DramaRestartRequired, di::DramaContext) = true
+end
+
+# ╔═╡ fc2f788c-e1b2-4f40-958f-ab3c1bc583b0
+#=╠═╡
+di.new_state["nbpkg"]
+  ╠═╡ =#
 
 # ╔═╡ f195e882-d1db-4e58-ad88-087bd595767f
 md"""
@@ -387,6 +412,11 @@ check_drama(n, di)
 # ╔═╡ 5f756032-cc9e-49af-9214-ac1b02b2ed0c
 #=╠═╡
 should_check_drama(n, di)
+  ╠═╡ =#
+
+# ╔═╡ 8afef039-53b0-4ab2-8175-f055602a8474
+#=╠═╡
+check_drama(DramaRestartRequired(), di)
   ╠═╡ =#
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -825,7 +855,10 @@ version = "17.4.0+2"
 # ╠═ce3574d8-4c59-48c4-b366-8c6444f37e2e
 # ╠═5f756032-cc9e-49af-9214-ac1b02b2ed0c
 # ╠═135e4ec3-dd15-490b-855b-6a258febf1e5
-# ╠═1f1ba51d-f8ef-4d6e-b627-5c347508936f
+# ╟─1f1ba51d-f8ef-4d6e-b627-5c347508936f
+# ╠═8afef039-53b0-4ab2-8175-f055602a8474
+# ╠═58120091-a338-46fc-b5e6-2a19704844cb
+# ╠═fc2f788c-e1b2-4f40-958f-ab3c1bc583b0
 # ╟─f195e882-d1db-4e58-ad88-087bd595767f
 # ╠═3558d1ad-2987-45fb-bc33-a3656ee32494
 # ╠═fda9e334-8a4f-4b0e-93fe-cf01dac61e50
