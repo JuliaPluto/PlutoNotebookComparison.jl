@@ -20,8 +20,8 @@ end
 # DramaLinkBroken
 
 const maximum_drama = [
-    drama_broken_import,
-    drama_new_error,
+    DramaBrokenImport(),
+    DramaNewError(),
     # drama_output_changed,
     
     # drama_link_broken,
@@ -49,7 +49,7 @@ function compare_PR(dir::AbstractString;
         sources_old::Vector{<:StatefileSource}, 
         sources_new::Vector{<:StatefileSource}=sources_old,
         require_check::Bool=true,
-        drama_checkers::Vector{Function}=maximum_drama,
+        drama_checkers::Vector{<:AbstractDrama}=maximum_drama,
     )
     repo = diff.owner
     pr_deltas = Glitter.deltas(diff)
@@ -61,37 +61,42 @@ function compare_PR(dir::AbstractString;
         
         delta = find(d -> unsafe_string(d.new_file.path) == path, pr_deltas)
         
-        if delta !== nothing && Glitter.is_modified(delta)
-            @info "🍄 Notebook" path
+        file_changed = delta !== nothing && Glitter.is_modified(delta)
+        if file_changed
 
-            contents_old = Glitter.contents(repo, delta.old_file)
-            contents_new = Glitter.contents(repo, delta.new_file)
+            old_contents = Glitter.contents(repo, delta.old_file)
+            new_contents = Glitter.contents(repo, delta.new_file)
             
-            path_old = unsafe_string(delta.old_file.path)
-            path_new = unsafe_string(delta.new_file.path)
-            
-            statefile_old = PlutoNotebookComparison.get_statefile(sources_old, dir, path_old, contents_old)
-            statefile_new = PlutoNotebookComparison.get_statefile(sources_new, dir, path_new, contents_new)
-            
-            @info "Search results" path statefile_old.source statefile_new.source
+            old_path = unsafe_string(delta.old_file.path)
+            new_path = unsafe_string(delta.new_file.path)
+        else
+            old_contents = new_contents = read(joinpath(dir, path), String)
+            old_path = new_path = path
+        end
+    
+        statefile_old = PlutoNotebookComparison.get_statefile(sources_old, dir, old_path, old_contents)
+        statefile_new = PlutoNotebookComparison.get_statefile(sources_new, dir, new_path, new_contents)
+        
+        @info "Search results" path statefile_old.source statefile_new.source
 
-            if statefile_old.found && statefile_new.found
-            
-                state_old = Pluto.unpack(statefile_old.result)
-                state_new = Pluto.unpack(statefile_new.result)
+        if statefile_old.found && statefile_new.found
+        
+            state_old = Pluto.unpack(statefile_old.result)
+            state_new = Pluto.unpack(statefile_new.result)
 
-                drama_context = PlutoNotebookComparison.get_drama_context(state_old, state_new)
-                
-                for f in drama_checkers
-                    @info "checking" path f
-                    f(drama_context)
+            drama_context = PlutoNotebookComparison.get_drama_context(state_old, state_new; file_changed, old_path, new_path)
+            
+            for drama_checker in drama_checkers
+                if should_check_drama(drama_checker, drama_context)
+                    @info "checking" path drama_checker
+                    check_drama(drama_checker, drama_context)
+                else
+                    @debug "skipping..." path drama_checker
                 end
-            else
-                @warn "No statefile found for this notebook, not checking..." path statefile_old.found statefile_new.found
-                require_check && error("No statefile found, see logs. Set require_check=false to allow this.")
             end
         else
-            @debug "skipping..." path
+            @warn "No statefile found for this notebook, not checking..." path statefile_old.found statefile_new.found
+            require_check && error("No statefile found, see logs. Set require_check=false to allow this.")
         end
     end
     @info "✅ All $(length(all_notebooks)) notebooks passed without drama"
