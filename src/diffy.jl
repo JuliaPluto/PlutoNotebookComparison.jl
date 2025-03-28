@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.4
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -14,6 +14,9 @@ using Pluto
 md"""
 # State diff
 """
+
+# ╔═╡ 8e3b6c55-6a40-4763-84d7-8ca76570cae0
+old_path = new_path = "derp"
 
 # ╔═╡ 40e38f1f-7e7a-42c5-9bdc-ccaebba627d9
 # ╠═╡ skip_as_script = true
@@ -93,6 +96,9 @@ end
 # ╔═╡ a245acaf-b112-4af0-ba4b-78fda3b2da8e
 flatmap(args...) = vcat(map(args...)...)
 
+# ╔═╡ 87cd065c-dd8b-429e-a452-7a8c72164b76
+
+
 # ╔═╡ 4087533e-c54b-4cb9-b474-e82ad98b0229
 begin
 	abstract type Change end
@@ -162,34 +168,27 @@ end
 cs = flatmap(d -> changes(d, state2), diff)
   ╠═╡ =#
 
-# ╔═╡ 28a86c8f-7de0-4e3d-81bb-5c371e28494b
-
-
-# ╔═╡ 85e8d9cc-211a-47ff-9963-671fd22e3744
-
-
-# ╔═╡ 73582e38-5bff-45bf-957c-76c31af91581
-
-
-# ╔═╡ 2c96d25e-698e-4858-a9b3-9118d11e223f
-
-
-# ╔═╡ ccedc075-7ad2-40df-95d4-caf1dbad54ae
-
+# ╔═╡ e1168ad4-ef52-4d75-8ab7-cfd903303261
+md"""
+# Drama context
+"""
 
 # ╔═╡ 786a675b-94dc-4b2a-ac22-182047182e8d
-struct DramaContext
+Base.@kwdef struct DramaContext
+	file_changed::Bool
 	old_state::Dict
 	new_state::Dict
 	old_cell_order::Vector{String}
 	new_cell_order::Vector{String}
+	old_path::String
+	new_path::String
 	diff::Vector{Pluto.Firebasey.JSONPatch}
 	changes::Vector{Change}
 	changes_per_cell::Vector{Vector{Change}}
 end
 
 # ╔═╡ e755dc2a-8c52-40c0-8bde-aba0f915bde7
-function get_drama_context(state1, state2)
+function get_drama_context(state1, state2; kwargs...)
 	diff = Pluto.Firebasey.diff(state1, state2)
 	cs = flatmap(d -> changes(d, state2), diff)
 
@@ -199,52 +198,85 @@ function get_drama_context(state1, state2)
 		end
 	end
 
-	di = DramaContext(
-		state1, state2, state1["cell_order"], state2["cell_order"], diff, cs, changes_per_cell
+	DramaContext(;
+		old_state=state1, 
+		new_state=state2, 
+		old_cell_order=state1["cell_order"], 
+		new_cell_order=state2["cell_order"], 
+		diff, 
+		  changes=cs, 
+		  changes_per_cell,
+		  kwargs...
 	)
 end
 
 # ╔═╡ 7ebe8d30-2289-49c2-9f83-9df17ac3880b
 #=╠═╡
-di = get_drama_context(state1, state2)
+di = get_drama_context(state1, state2; file_changed=true, old_path, new_path)
   ╠═╡ =#
 
-# ╔═╡ fa92db07-67ad-4e0f-9254-62a94ac370dc
-
+# ╔═╡ 2c96d25e-698e-4858-a9b3-9118d11e223f
+md"""
+# `AbstractDrama`
+"""
 
 # ╔═╡ e658eb77-6185-44be-a3b0-65c5a7437baa
+abstract type AbstractDrama end
 
+# ╔═╡ cf6e0f3d-fe26-4cce-8a84-9943bd88a971
+check_drama(source::AbstractDrama, context::DramaContext) = error("Not yet implemented.")
 
-# ╔═╡ a57abe11-274b-414a-aa42-9e034768e78a
-
-
-# ╔═╡ e1168ad4-ef52-4d75-8ab7-cfd903303261
-
+# ╔═╡ 89018851-2372-433b-a4dc-90e596080b47
+should_check_drama(source::AbstractDrama, context::DramaContext) = error("Not yet implemented.")
 
 # ╔═╡ 0799a467-2fe9-4cc9-ab91-dcf6dbb3973d
 
 
 # ╔═╡ 098ee496-b284-4f11-86d1-d9b23d74faa1
-
-
-# ╔═╡ 890552e5-05a6-471d-8be9-7ff50ffa1526
-function drama_broken_import(di::DramaContext)
-	for (cell_id, change) in zip(di.new_cell_order, di.changes_per_cell)
-		drama_broken_import(di.new_state, cell_id, change)
-	end
-end
+md"""
+# `DramaBrokenImport`
+"""
 
 # ╔═╡ e44ccceb-32ac-4af5-8bfd-ea00cd04883e
 
 
 # ╔═╡ 1877f8d8-a3b9-4015-b301-f2e0d0b86f50
-
+md"""
+# `DramaNewError`
+"""
 
 # ╔═╡ 1f1ba51d-f8ef-4d6e-b627-5c347508936f
+md"""
+# `DramaRestartRequired`
+"""
 
+# ╔═╡ 58120091-a338-46fc-b5e6-2a19704844cb
+begin
+	struct DramaRestartRequired <: AbstractDrama
+	end
+	
+	function check_drama(::DramaRestartRequired, di::DramaContext)
+		nbpkg = di.new_state["nbpkg"]
+		if nbpkg !== nothing
+			@assert !nbpkg["waiting_for_permission"]
+			# @assert nbpkg["instantiated"]
+			@assert nbpkg["restart_recommended_msg"] === nothing nbpkg["restart_recommended_msg"]
+			@assert nbpkg["restart_required_msg"] === nothing nbpkg["restart_required_msg"]
+		end
+	end
 
-# ╔═╡ 19534135-1dfb-406e-a506-19d73920353d
+	should_check_drama(::DramaRestartRequired, di::DramaContext) = true
+end
 
+# ╔═╡ fc2f788c-e1b2-4f40-958f-ab3c1bc583b0
+#=╠═╡
+di.new_state["nbpkg"]
+  ╠═╡ =#
+
+# ╔═╡ f195e882-d1db-4e58-ad88-087bd595767f
+md"""
+# `preview_cell`
+"""
 
 # ╔═╡ 3558d1ad-2987-45fb-bc33-a3656ee32494
 function preview_cell(state, cell_id)::String
@@ -260,18 +292,23 @@ function preview_cell(state, cell_id)::String
 end
 
 # ╔═╡ 135e4ec3-dd15-490b-855b-6a258febf1e5
-function drama_new_error(di::DramaContext)
-	for ch in di.changes
-		if ch isa ErrorChanged && ch.new_errored
-			error("New error! Cell $(ch.cell_id).$(preview_cell(di.new_state, ch.cell_id))")
+begin
+	struct DramaNewError <: AbstractDrama
+	end
+	
+	function check_drama(::DramaNewError, di::DramaContext)
+		for ch in di.changes
+			if ch isa ErrorChanged && ch.new_errored
+				error("New error! Cell $(ch.cell_id).$(preview_cell(di.new_state, ch.cell_id))")
+			end
 		end
 	end
+
+	should_check_drama(::DramaNewError, di::DramaContext) = di.file_changed
 end
 
 # ╔═╡ 0785487e-1653-4d16-ad12-7d141bd61a56
-#=╠═╡
-drama_new_error(di)
-  ╠═╡ =#
+n = DramaNewError()
 
 # ╔═╡ fda9e334-8a4f-4b0e-93fe-cf01dac61e50
 #=╠═╡
@@ -279,7 +316,9 @@ preview_cell(state2, state1["cell_order"][1]) |> Text
   ╠═╡ =#
 
 # ╔═╡ d0946ad7-f4e1-4ff3-bf19-2db3ec9d3445
-
+md"""
+# prut
+"""
 
 # ╔═╡ 916477bc-7a8e-4a9d-9803-ca36e58b4396
 function get_recursive_deps(state, cell_id)
@@ -338,14 +377,46 @@ function drama_broken_import(state, cell_id, cell_changes)
 	end
 end
 
-# ╔═╡ 284f564e-4f59-43be-9f20-449c002350c1
+# ╔═╡ 9acf48cc-074b-478e-bace-132100e55b26
+begin
+	struct DramaBrokenImport <: AbstractDrama
+	end
+
+	function check_drama(::DramaBrokenImport, di::DramaContext)
+		for (cell_id, change) in zip(di.new_cell_order, di.changes_per_cell)
+			drama_broken_import(di.new_state, cell_id, change)
+		end
+	end
+
+	should_check_drama(::DramaBrokenImport, di::DramaContext) = true
+end
+
+# ╔═╡ a7f2f4c9-65ef-42b6-b026-6feacef87e39
+d = DramaBrokenImport()
+
+# ╔═╡ d7d3e566-6d18-4b6a-8e9e-05b1b40c1274
 #=╠═╡
-drama_broken_import(di)
+should_check_drama(d, di)
   ╠═╡ =#
 
-# ╔═╡ 7d7d0f25-b92b-433d-aa68-dc8b65390c1e
+# ╔═╡ 43d8bfba-9aac-4735-80fc-bea2b5428670
 #=╠═╡
-ExpressionExplorer.compute_usings_imports(ex) |> ExpressionExplorer.external_package_names |> isempty
+check_drama(d, di)
+  ╠═╡ =#
+
+# ╔═╡ ce3574d8-4c59-48c4-b366-8c6444f37e2e
+#=╠═╡
+check_drama(n, di)
+  ╠═╡ =#
+
+# ╔═╡ 5f756032-cc9e-49af-9214-ac1b02b2ed0c
+#=╠═╡
+should_check_drama(n, di)
+  ╠═╡ =#
+
+# ╔═╡ 8afef039-53b0-4ab2-8175-f055602a8474
+#=╠═╡
+check_drama(DramaRestartRequired(), di)
   ╠═╡ =#
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -363,7 +434,7 @@ Pluto = "~0.20.4"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.3"
+julia_version = "1.11.4"
 manifest_format = "2.0"
 project_hash = "259e9a8d97a93dbc0ebd0326f5ef0a0763c78107"
 
@@ -746,6 +817,7 @@ version = "17.4.0+2"
 # ╠═aa68c324-eabf-11ef-2a75-19adc8937c8a
 # ╟─af7c27ca-5f81-49be-86a9-74d52a90346a
 # ╟─8447d68b-eb5b-45ed-90d2-379747854b03
+# ╠═8e3b6c55-6a40-4763-84d7-8ca76570cae0
 # ╠═40e38f1f-7e7a-42c5-9bdc-ccaebba627d9
 # ╠═940105fc-2622-4f20-9826-8bb8ac2d5cd2
 # ╠═e46aec14-8e7c-453a-8aa2-cb1a50d99501
@@ -759,41 +831,44 @@ version = "17.4.0+2"
 # ╠═343e3baa-921b-45af-8e19-077f6b098085
 # ╠═e8007d30-2b0a-46c4-80a7-a1d4367fb3a3
 # ╠═a245acaf-b112-4af0-ba4b-78fda3b2da8e
+# ╟─87cd065c-dd8b-429e-a452-7a8c72164b76
 # ╠═a341a46e-3dc5-4e21-9ebe-f9d45c5eb51e
 # ╠═4087533e-c54b-4cb9-b474-e82ad98b0229
-# ╠═28a86c8f-7de0-4e3d-81bb-5c371e28494b
-# ╠═85e8d9cc-211a-47ff-9963-671fd22e3744
-# ╠═73582e38-5bff-45bf-957c-76c31af91581
-# ╠═2c96d25e-698e-4858-a9b3-9118d11e223f
-# ╠═ccedc075-7ad2-40df-95d4-caf1dbad54ae
+# ╟─e1168ad4-ef52-4d75-8ab7-cfd903303261
 # ╠═e755dc2a-8c52-40c0-8bde-aba0f915bde7
 # ╠═786a675b-94dc-4b2a-ac22-182047182e8d
 # ╠═7ebe8d30-2289-49c2-9f83-9df17ac3880b
-# ╠═fa92db07-67ad-4e0f-9254-62a94ac370dc
+# ╟─2c96d25e-698e-4858-a9b3-9118d11e223f
 # ╠═e658eb77-6185-44be-a3b0-65c5a7437baa
-# ╠═a57abe11-274b-414a-aa42-9e034768e78a
-# ╠═e1168ad4-ef52-4d75-8ab7-cfd903303261
-# ╠═0799a467-2fe9-4cc9-ab91-dcf6dbb3973d
-# ╠═098ee496-b284-4f11-86d1-d9b23d74faa1
-# ╠═284f564e-4f59-43be-9f20-449c002350c1
-# ╠═890552e5-05a6-471d-8be9-7ff50ffa1526
+# ╠═cf6e0f3d-fe26-4cce-8a84-9943bd88a971
+# ╠═89018851-2372-433b-a4dc-90e596080b47
+# ╟─0799a467-2fe9-4cc9-ab91-dcf6dbb3973d
+# ╟─098ee496-b284-4f11-86d1-d9b23d74faa1
+# ╠═a7f2f4c9-65ef-42b6-b026-6feacef87e39
+# ╠═d7d3e566-6d18-4b6a-8e9e-05b1b40c1274
+# ╠═43d8bfba-9aac-4735-80fc-bea2b5428670
+# ╠═9acf48cc-074b-478e-bace-132100e55b26
 # ╠═edb3140c-d8ec-467f-ba53-74a5016b8735
 # ╠═e44ccceb-32ac-4af5-8bfd-ea00cd04883e
-# ╠═1877f8d8-a3b9-4015-b301-f2e0d0b86f50
+# ╟─1877f8d8-a3b9-4015-b301-f2e0d0b86f50
 # ╠═0785487e-1653-4d16-ad12-7d141bd61a56
+# ╠═ce3574d8-4c59-48c4-b366-8c6444f37e2e
+# ╠═5f756032-cc9e-49af-9214-ac1b02b2ed0c
 # ╠═135e4ec3-dd15-490b-855b-6a258febf1e5
-# ╠═1f1ba51d-f8ef-4d6e-b627-5c347508936f
-# ╠═19534135-1dfb-406e-a506-19d73920353d
+# ╟─1f1ba51d-f8ef-4d6e-b627-5c347508936f
+# ╠═8afef039-53b0-4ab2-8175-f055602a8474
+# ╠═58120091-a338-46fc-b5e6-2a19704844cb
+# ╠═fc2f788c-e1b2-4f40-958f-ab3c1bc583b0
+# ╟─f195e882-d1db-4e58-ad88-087bd595767f
 # ╠═3558d1ad-2987-45fb-bc33-a3656ee32494
 # ╠═fda9e334-8a4f-4b0e-93fe-cf01dac61e50
-# ╠═d0946ad7-f4e1-4ff3-bf19-2db3ec9d3445
+# ╟─d0946ad7-f4e1-4ff3-bf19-2db3ec9d3445
 # ╠═916477bc-7a8e-4a9d-9803-ca36e58b4396
 # ╠═52a7aa4f-ecd0-415a-b827-7c06d783c27a
 # ╠═3d48523c-9e66-4c85-b5a4-c991ba1d07c9
 # ╠═6582655f-c8ce-4870-85c8-dbf1d90b604f
 # ╠═a801a854-d20c-49db-a080-a49a7fb323b9
 # ╠═9f9494ab-b994-4af3-9547-87eb10d1b9de
-# ╠═7d7d0f25-b92b-433d-aa68-dc8b65390c1e
 # ╠═2c992336-a2f8-412b-acca-cd84dbc48e7b
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
