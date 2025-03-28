@@ -73,11 +73,11 @@ For both, extract statefile from a cache source.
 Diff:
 
 
-drama_new_error
-drama_output_changed
-drama_broken_import
-drama_nbpkg_changed (check nbpkg logs for drama) -> show full output
-drama_nbpkg_wrong, not instantiated, restart recommended/required, -> show full output
+DramaNewError
+DramaOutputChanged
+DramaBrokenImport
+DramaNbpkgChanged (check nbpkg logs for drama) -> show full output
+DramaNbpkgWrong, not instantiated, restart recommended/required, -> show full output
 
 
 run like test CI
