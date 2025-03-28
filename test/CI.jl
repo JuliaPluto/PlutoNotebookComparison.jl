@@ -10,7 +10,7 @@ bad_error = checkout_test_repo(; branch_name="bad-error")
     sources_old = [
         # PSSCache("pluto_state_cache")
         # WebsiteDir("gh_pages_dir")
-        # WebsiteAddress("https://biaslab.github.io/BMLIP-colorized/")
+        # WebsiteAddress("https://bmlip.github.io/colorized/")
         SafePreview()
     ]
 

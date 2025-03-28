@@ -51,6 +51,7 @@ function compare_PR(dir::AbstractString;
         require_check::Bool=true,
         drama_checkers::Vector{Function}=maximum_drama,
     )
+    repo = diff.owner
     pr_deltas = Glitter.deltas(diff)
 
     all_notebooks = PlutoSliderServer.find_notebook_files_recursive(dir)
@@ -62,7 +63,6 @@ function compare_PR(dir::AbstractString;
         
         if delta !== nothing && Glitter.is_modified(delta)
             @info "🍄 Notebook" path
-            repo = diff.owner
 
             contents_old = Glitter.contents(repo, delta.old_file)
             contents_new = Glitter.contents(repo, delta.new_file)
@@ -94,7 +94,7 @@ function compare_PR(dir::AbstractString;
             @debug "skipping..." path
         end
     end
-    @info "✅ All notebooks passed without drama"
+    @info "✅ All $(length(all_notebooks)) notebooks passed without drama"
 end
 
 
