@@ -12,7 +12,12 @@ import PlutoNotebookComparison
     state2 = Pluto.unpack(state2_raw)
 
     context = PlutoNotebookComparison.get_drama_context(state1, state2)
-    PlutoNotebookComparison.drama_broken_import(context)
-    PlutoNotebookComparison.drama_new_error(context)
+    
+    d1 = PlutoNotebookComparison.DramaBrokenImport()
+    d2 = PlutoNotebookComparison.DramaNewError()
+    
+    
+    PlutoNotebookComparison.check_drama(d1, context)
+    PlutoNotebookComparison.check_drama(d2, context)
 
 end
