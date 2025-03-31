@@ -4,5 +4,6 @@ using Test
 # include("./diffy.jl")
 include("./checkout test repo.jl")
 include("./CI.jl")
+include("./Pkg.jl")
 
 
