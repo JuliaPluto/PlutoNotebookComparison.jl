@@ -11,7 +11,7 @@ import PlutoNotebookComparison
     state2_raw = read(joinpath(@__DIR__, "statefiles", "test2.plutostate"))
     state2 = Pluto.unpack(state2_raw)
 
-    context = PlutoNotebookComparison.get_drama_context(state1, state2)
+    context = PlutoNotebookComparison.get_drama_context(state1, state2; file_changed=true, old_path="derp", new_path="derp")
     
     d1 = PlutoNotebookComparison.DramaBrokenImport()
     d2 = PlutoNotebookComparison.DramaNewError()
