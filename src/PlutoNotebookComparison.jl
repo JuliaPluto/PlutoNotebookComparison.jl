@@ -16,6 +16,8 @@ include("./StatefileExtraction.jl")
 
 include("./diffy.jl")
 export DramaContext, get_drama_context
+export check_drama, should_check_drama
+export AbstractDrama, DramaBrokenImport, DramaNewError, DramaRestartRequired
 
 
 include("./CI.jl")
