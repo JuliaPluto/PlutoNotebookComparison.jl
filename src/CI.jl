@@ -22,6 +22,7 @@ end
 const maximum_drama = [
     DramaBrokenImport(),
     DramaNewError(),
+    DramaRestartRequired(),
     # drama_output_changed,
     
     # drama_link_broken,
