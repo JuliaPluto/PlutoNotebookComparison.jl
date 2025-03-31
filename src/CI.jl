@@ -51,11 +51,14 @@ function compare_PR(dir::AbstractString;
         sources_new::Vector{<:StatefileSource}=sources_old,
         require_check::Bool=true,
         drama_checkers::Vector{<:AbstractDrama}=maximum_drama,
+        
     )
     repo = diff.owner
     pr_deltas = Glitter.deltas(diff)
 
-    all_notebooks = PlutoSliderServer.find_notebook_files_recursive(dir)
+    pss_settings = PlutoSliderServer.get_configuration(PlutoSliderServer.default_config_path())
+    
+    all_notebooks = PlutoSliderServer.find_notebook_files_recursive(dir, pss_settings)
     
     for path in all_notebooks
         @debug "🍄 Notebook" path
