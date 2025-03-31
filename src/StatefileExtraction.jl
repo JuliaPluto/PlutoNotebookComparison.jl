@@ -117,6 +117,7 @@ function get_statefile(source::SafePreview, root_dir::AbstractString, notebook_p
     
     state = with_logging_context("(Pluto) ") do
         sesh = Pluto.ServerSession()
+        sesh.options.server.disable_writing_notebook_files = true
         notebook = Pluto.SessionActions.open(sesh, path; execution_allowed=false, run_async=false)
         state = Pluto.pack(Pluto.notebook_to_js(notebook))
         Pluto.SessionActions.shutdown(sesh, notebook)
