@@ -81,7 +81,7 @@ function compare_PR(dir::AbstractString;
         statefile_old = PlutoNotebookComparison.get_statefile(sources_old, dir, old_path, old_contents)
         statefile_new = PlutoNotebookComparison.get_statefile(sources_new, dir, new_path, new_contents)
         
-        @info "Search results" path statefile_old.source statefile_new.source
+        @info "🍄 Notebook" path statefile_old.source statefile_new.source
 
         if statefile_old.found && statefile_new.found
         
@@ -92,7 +92,7 @@ function compare_PR(dir::AbstractString;
             
             for drama_checker in drama_checkers
                 if should_check_drama(drama_checker, drama_context)
-                    @info "checking" path drama_checker
+                    @info "Checking drama..." path drama_checker
                     check_drama(drama_checker, drama_context)
                 else
                     @debug "skipping..." path drama_checker
