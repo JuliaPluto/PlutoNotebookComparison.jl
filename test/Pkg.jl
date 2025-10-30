@@ -9,7 +9,7 @@ bad_pkg2 = checkout_test_repo(; branch_name="bad-pkg-2")
     sources_old = [
         # PSSCache("pluto_state_cache")
         # WebsiteDir("gh_pages_dir")
-        # WebsiteAddress("https://bmlip.github.io/colorized/")
+        # WebsiteAddress("https://bmlip.github.io/course/")
         SafePreview()
     ]
 
