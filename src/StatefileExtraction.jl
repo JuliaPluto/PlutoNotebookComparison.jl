@@ -85,7 +85,7 @@ end
 
 function get_statefile(source::WebsiteAddress, root_dir::AbstractString, notebook_path::String, notebook_file_contents::String)
     path = without_pluto_file_extension(notebook_path) * ".plutostate"
-    url = URIs.resolvereference(source.root_url, path)
+    url = URIs.resolvereference(source.root_url, URIs.escapepath(path))
     
     try
         response = HTTP.get(url; retry=false, status_exception=true)
