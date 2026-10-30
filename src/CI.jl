@@ -46,14 +46,14 @@ const reporters = [
 
 
 function compare_PR(dir::AbstractString;
-        diff::LibGit2.GitDiff=Glitter.PR_diff(LibGit2.GitRepo(dir)),
+        repo::LibGit2.GitRepo=LibGit2.GitRepo(dir),
+        diff::LibGit2.GitDiff=Glitter.PR_diff(repo),
         sources_old::Vector{<:StatefileSource}, 
         sources_new::Vector{<:StatefileSource}=sources_old,
         require_check::Bool=true,
         drama_checkers::Vector{<:AbstractDrama}=maximum_drama,
         
     )
-    repo = diff.owner
     pr_deltas = Glitter.deltas(diff)
 
     pss_settings = PlutoSliderServer.get_configuration(PlutoSliderServer.default_config_path())
